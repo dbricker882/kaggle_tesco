@@ -1,0 +1,38 @@
+---
+title: "Tesco"
+author: "David bricker"
+date: "2022-08-29"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+
+knitr::opts_chunk$set(echo = FALSE)
+
+setwd("C:/Users/brick/Documents/GitHub/kaggle_tesco")
+
+library(tidyverse)
+library(readr)
+library(ggplot2)
+library(ggthemes)
+library(lubridate)
+library(DBI)
+library(kableExtra)
+library(MetBrewer)
+
+theme_set(theme_minimal())
+update_geom_defaults("col", list(fill = "midnight blue", alpha = 0.8))
+
+```
+
+# Read in Data
+```{r}
+df <- readxl::read_excel("tesco.xlsx", sheet = "Order Data")
+
+df %>% 
+  group_by(`Customer Name`) %>% 
+  summarize(count = n_distinct(`Order ID`)) %>% 
+  arrange(desc(count))
+  
+```
+

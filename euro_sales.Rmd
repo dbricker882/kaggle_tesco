@@ -8,9 +8,9 @@ editor_options:
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(warning = FALSE, message = FALSE, echo = FALSE, fig.wdth = 10, fig.height = 5)
+# Package Set up
 
-setwd("C:/Users/brick/Documents/GitHub/kaggle_tesco")
+knitr::opts_chunk$set(warning = FALSE, message = FALSE, echo = FALSE, fig.wdth = 10, fig.height = 5)
 
 library(tidyverse)
 library(ggplot2)
@@ -26,7 +26,9 @@ update_geom_defaults("col", list(fill = "midnight blue", alpha = 0.8))
 ```
 
 ```{r}
-df <- readxl::read_excel("tesco.xlsx", sheet = "Order Data") %>%
+# Read in Data
+
+df <- readr::read_csv("https://raw.githubusercontent.com/dbricker882/dbricker882/main/european_sales.csv") %>%
   clean_names()
 ```
 

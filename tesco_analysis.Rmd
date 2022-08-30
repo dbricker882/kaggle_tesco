@@ -40,7 +40,7 @@ full code available here: [European Sales Analysis](https://github.com/dbricker8
 
 The total orders and total profit for each country in which the business operates can be seen below.
 
-```{r, fig.width=10, fig.height = 5}
+```{r, fig.width=15, fig.height = 5}
 # Cretae data frame of orders and profit grouped by country and region.
 
 region_orders <- df %>%

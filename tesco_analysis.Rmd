@@ -1,5 +1,5 @@
 ---
-title: "Tesco"
+title: "European Sales Analysis"
 author: "David bricker"
 date: "2022-08-29"
 output: html_document
@@ -26,22 +26,34 @@ update_geom_defaults("col", list(fill = "midnight blue", alpha = 0.8))
 ```
 
 ```{r}
-df <- readxl::read_excel("tesco.xlsx", sheet = "Order Data") %>% 
+df <- readxl::read_excel("tesco.xlsx", sheet = "Order Data") %>%
   clean_names()
 ```
+
+# Overview
+
+This data set contains order and sales data for a retailer in Europe. The aim of the analysis will be to provide an overview of historic sales and provide guidance on improving sales in less profitable areas.
+
+full code available here: [European Sales Analysis](https://github.com/dbricker882/kaggle_tesco)
 
 ## Orders and Profit
 
 The total orders and total profit for each country in which the business operates can be seen below.
 
 ```{r, fig.width=10, fig.height = 5}
+# Cretae data frame of orders and profit grouped by country and region.
+
 region_orders <- df %>%
-  group_by(country, region) %>% 
-  summarize(orders = n_distinct(order_id),
-            profit = sum(profit)) %>% 
+  group_by(country, region) %>%
+  summarize(
+    orders = n_distinct(order_id),
+    profit = sum(profit)
+  ) %>%
   arrange(region, desc(orders))
 
-orders_chart <- region_orders %>% 
+# Plot total orders data by country and region.
+
+orders_chart <- region_orders %>%
   ggplot(aes(reorder(country, orders), orders)) +
   geom_col(aes(fill = region), show.legend = FALSE) +
   geom_text(aes(label = orders), hjust = -.1, size = 4) +
@@ -52,20 +64,22 @@ orders_chart <- region_orders %>%
     x = "Country",
     y = "Orders"
   ) +
-  coord_flip()+
+  coord_flip() +
   theme(
     title = element_text(size = 18),
     axis.title.y = element_text(size = 16),
     axis.text.y = element_text(size = 14),
-    axis.title.x = element_text(size = 16),    
+    axis.title.x = element_text(size = 16),
     axis.text.x = element_text(size = 14),
     strip.text = element_blank()
   )
 
-profit_chart <- region_orders %>% 
-  ggplot(aes(reorder(country, orders), profit/1000)) +
+# Plot total profit data by country and region.
+
+profit_chart <- region_orders %>%
+  ggplot(aes(reorder(country, orders), profit / 1000)) +
   geom_col(aes(fill = region), show.legend = FALSE) +
-  geom_text(aes(label = paste(round(profit/1000,1))), hjust = ifelse(region_orders$profit < 0, .9, -.1), size = 4) +
+  geom_text(aes(label = paste(round(profit / 1000, 1))), hjust = ifelse(region_orders$profit < 0, .9, -.1), size = 4) +
   scale_fill_manual(values = met.brewer("Pillement")) +
   facet_grid(rows = vars(region), scales = "free", space = "free_x") +
   labs(
@@ -73,17 +87,19 @@ profit_chart <- region_orders %>%
     x = "Country",
     y = "Profit In Thousands"
   ) +
-  coord_flip()+
+  coord_flip() +
   theme(
     title = element_text(size = 18),
     axis.title.y = element_blank(),
     axis.text.y = element_blank(),
-    axis.title.x = element_text(size = 16),    
+    axis.title.x = element_text(size = 16),
     axis.text.x = element_text(size = 14),
     strip.text = element_text(size = 16)
   )
 
-ggarrange(orders_chart, profit_chart, nrow = 1, ncol = 2, widths = c(2,2))
+# Print charts side by side.
+
+ggarrange(orders_chart, profit_chart, nrow = 1, ncol = 2, widths = c(2, 2))
 ```
 
 Orders and profit seem to be driven by 5 countries, France, Germany, United Kingdom, Italy, and Spain. While orders from Netherlands, Sweden, Ireland, Denmark, and Portugal have resulted in a net loss between 2011-2015.
@@ -105,15 +121,19 @@ To investigate theories 1 and 2 we can plot the profit of every order placed in 
 
 ```{r, fig.width=10, fig.height = 5}
 
-neg <- df %>% 
+# Create data frame of only net loss country data.
+
+neg <- df %>%
   filter(country %in% c("Netherlands", "Sweden", "Ireland", "Denmark", "Portugal"))
 
-neg %>% 
+# Plot profit for each order in net loss countries.
+
+neg %>%
   ggplot(aes(as.Date(order_date), profit)) +
   geom_point(aes(color = country), size = 2, alpha = 0.6) +
   scale_x_date(position = "top") +
   scale_color_manual(values = met.brewer("Degas")) +
-    labs(
+  labs(
     title = "Profit Per Order",
     x = "Date",
     y = "Profit",
@@ -136,17 +156,20 @@ Each dot in the chart above represents an order. While the number of orders incr
 The data does support theory #2 showing that there were a small number of orders with large negative profit values. However, the almost complete lack of positive profit values in the chart means even after removing these large negatives (\< -1000 profit) we would still see negative totals.
 
 ```{r}
-neg %>% 
-  filter(profit > -1000) %>% 
-  group_by(country) %>% 
-  summarize(total_profit = sum(profit)) %>% 
+
+# Create table of net loss countries with large negative orders removed.
+
+neg %>%
+  filter(profit > -1000) %>%
+  group_by(country) %>%
+  summarize(total_profit = sum(profit)) %>%
   kbl(
     align = c("l", "r"),
     caption = "Orders <= -1000 Profit Removed",
     col.names = c(
       "Country",
       "Total profit"
-      )
+    )
   ) %>%
   kable_styling("striped",
     full_width = FALSE
@@ -158,11 +181,19 @@ neg %>%
 The chart below shows the proportion of orders placed with a discount in the net loss countries compared to profitable countries.
 
 ```{r, fig.width=10, fig.height = 5}
-country_type <- df %>% 
-  mutate(gain_loss = case_when(country %in% c("Denmark", "Ireland", "Netherlands", "Portugal", "Sweden") ~ "Net Loss Country",
-                               TRUE ~ "Profitable Country"))
-country_type %>% 
-  ggplot(aes(1,gain_loss, fill = discount > 0)) +
+
+# Add table of "Net Loss Country" or "Profitbale Country" to data frame.
+
+country_type <- df %>%
+  mutate(gain_loss = case_when(
+    country %in% c("Denmark", "Ireland", "Netherlands", "Portugal", "Sweden") ~ "Net Loss Country",
+    TRUE ~ "Profitable Country"
+  ))
+
+# Plot proportion of orders with discounts for net loss and profitable countries.
+
+country_type %>%
+  ggplot(aes(1, gain_loss, fill = discount > 0)) +
   geom_bar(stat = "identity", position = "fill") +
   scale_x_continuous(labels = scales::percent) +
   coord_flip() +
@@ -186,27 +217,10 @@ country_type %>%
 
 Every order placed in the net loss countries included a discount. While this could be intentional by the business it is not uncommon for customers to find a loophole to increase or reuse discounts. It is a good idea to check if there are any customers placing an abnormal amount of orders compared to others.
 
-```{r, include = FALSE}
-country_type %>%
-  group_by(gain_loss) %>% 
-  mutate(total_orders = n_distinct(order_id),
-         unique_customers = n_distinct(customer_name)) %>% 
-  group_by(gain_loss, customer_name) %>% 
-  summarize(customer_orders = n_distinct(order_id),
-            total_orders = max(total_orders),
-            unique_customers = max(unique_customers),
-            order_prop = customer_orders/max(total_orders)) %>% 
-  group_by(gain_loss) %>% 
-  mutate(rank = rank(-customer_orders, ties.method = "min"),
-         rank_percentile = rank/max(rank)) %>%
-  arrange(desc(customer_orders)) %>% 
-  filter(rank_percentile <= .05) %>% 
-  summarize(country_type = "Net Loss Country",
-            orders = sum(customer_orders),
-            top_5_porpotion = sum(customer_orders)/max(total_orders))
-```
-
 ```{r, fig.width=10, fig.height = 5}
+
+# Check for correlation between orders placed and total profit.
+
 country_type %>%
   group_by(gain_loss, customer_name) %>% 
   summarize(customer_orders = n_distinct(order_id),
@@ -242,6 +256,9 @@ It can be concluded that the frequency of discounted orders in the net loss stat
 Lastly, let's take a look at the category of products being ordered in the net loss countries. In addition we will check if they were part of corporate orders or regular consumer orders.
 
 ```{r, fig.width=10, fig.height = 5}
+
+# Plot percentage of orders attributed to each segment and product category for net loss and profitable countries.
+
 country_type %>%
   group_by(gain_loss) %>%
   mutate(group_orders = n_distinct(order_id)) %>%
